@@ -2,7 +2,8 @@
 #include <sstream>
 #include <fstream>
 
-int n, di; 
+int n; // numero de rodadas
+int di; // dinheiro inicial dos participantes  
 
 void leEntrada()
 {
@@ -12,6 +13,18 @@ void leEntrada()
     std::istringstream istr(str); 
     istr >> n >> di; 
 
+    for(int i = 0; i < n; i++) 
+    {
+        getline(file, str); 
+        istr.str(str); 
+        int j; // numero de jogadores 
+        int p; // valor do pingo 
+        istr >> j >> p; 
+        for(int k = 0; k < j; k++) 
+        {
+            
+        }
+    }
 
     file.close(); 
 }
