@@ -5,6 +5,7 @@
 int n; // numero de rodadas
 int di; // dinheiro inicial dos participantes  
 
+
 void leEntrada()
 {
     std::ifstream file("entrada.txt"); 
@@ -15,6 +16,7 @@ void leEntrada()
 
     for(int i = 0; i < n; i++) 
     {
+        jogador jogadores[1000]; 
         getline(file, str); 
         istr.str(str); 
         int j; // numero de jogadores 
@@ -22,8 +24,21 @@ void leEntrada()
         istr >> j >> p; 
         for(int k = 0; k < j; k++) 
         {
-            
+            jogador kEsimo; 
+            getline(file, str); 
+            istr.str(str); 
+            istr >> kEsimo.nome >> kEsimo.valor_aposta; 
+            for(int l = 0; l < 5; l++)
+            {
+                std::string carta;  
+                istr >> carta;
+                kEsimo.sequencia_cartas[l].numero = (int)carta[0]; 
+                kEsimo.sequencia_cartas[l].naipe = carta[1];   
+            }
+            jogadores[k] = kEsimo; 
         }
+
+        
     }
 
     file.close(); 
