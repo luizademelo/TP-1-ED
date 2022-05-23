@@ -1,5 +1,10 @@
+#ifndef POKERH 
+#define POKERH 
+
 #include <string>
 
+int n; // numero de rodadas
+int di; // dinheiro inicial dos participantes  
 
 typedef struct carta 
 {
@@ -17,3 +22,5 @@ typedef struct jogador
 
 void leEntrada(); 
 void escreveSaida(); 
+
+#endif 
