@@ -3,12 +3,9 @@
 
 #include <string>
 
-int n; // numero de rodadas
-int di; // dinheiro inicial dos participantes  
-
 typedef struct carta 
 {
-    char naipe; // pode ser O P E C  
+    char naipe; // pode ser C E O P 
     int numero; 
 } carta; 
 
@@ -21,6 +18,10 @@ typedef struct jogador
 } jogador;
 
 void leEntrada(); 
+void processaRodada(jogador jogadores[], int j); 
+void ordenaMao(carta sequencia_cartas[]); 
+void ordenaPorNaipe(carta sequencia_cartas[]); 
+void ordenaPorNum(carta sequencia_cartas[], int num); 
 void escreveSaida(); 
 
 #endif 
