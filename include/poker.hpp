@@ -19,9 +19,10 @@ typedef struct jogador
 
 void leEntrada(); 
 void processaRodada(jogador jogadores[], int j); 
+std::string processaSequenciaCartas(carta sequencia_cartas[]); 
 void ordenaMao(carta sequencia_cartas[]); 
 void ordenaPorNaipe(carta sequencia_cartas[]); 
-void ordenaPorNum(carta sequencia_cartas[], int num); 
+void ordenaPorNum(carta sequencia_cartas[], int ini, int fim); 
 void escreveSaida(); 
 
 #endif 
