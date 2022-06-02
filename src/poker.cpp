@@ -130,54 +130,73 @@ void trataEmpateJogada(jogador jogadores[], int j)
     int tp = 0;
     int op = 0;
     int hc = 0;
+    int p_sf; // posiçao do primeiro jogador com sf se houver
     for (int i = 0; i < j; i++)
     {
         switch (jogadores[i].classificacaoJogada)
         {
         case RSF:
             rsf++;
+            break;
         case SF:
             sf++;
+            if(sf == 1) p_sf = i; 
+            break;
         case FK:
             fk++;
+            break;
         case FH:
             fh++;
+            break;
         case F:
             f++;
+            break;
         case S:
             s++;
+            break;
         case TK:
             tk++;
+            break;
         case TP:
             tp++;
+            break;
         case OP:
             op++;
+            break;
         case HC:
             hc++;
+            break;
         }
     }
-    if(rsf > 1) nv++; 
-    if(sf > 1)
+    if (rsf > 1)
+        nv++;
+    if (sf > 1)
     {
-        for(int i = 0; i < sf; i++)
+        carta maior = achaMaiorCarta(jogadores[p_sf].sequencia_cartas); 
+        for (int i = 1; i < sf; i++)
         {
-        
-
+            carta x = achaMaiorCarta(jogadores[++p_sf].sequencia_cartas); 
+            if(x.numero < maior.numero) maior = x; 
+        }
+        for(int i = 0; i < j; i++)
+        {
+            if(jogadores[i].classificacaoJogada == SF && jogadores[i].maior_carta.numero == maior.numero)
+                nv++; 
         }
     }
 }
 
-carta achaMaiorCarta(carta sequencia_cartas[])
+void achaMaiorCarta(jogador jogadores[])
 {
-    carta maior = sequencia_cartas[0]; 
-    for(int i = 1; i < 5; i++)
+    carta maior = sequencia_cartas[0];
+    for (int i = 1; i < 5; i++)
     {
         // a maior carta no poker é a de menor valor
         // ex: o ás é a maior carta
-        if(sequencia_cartas[i].numero < maior.numero) 
+        if (sequencia_cartas[i].numero < maior.numero)
             maior = sequencia_cartas[i];
     }
-    return maior; 
+    
 }
 
 void ordenaJogadorPorClassificacao(jogador jogadores[], int j)

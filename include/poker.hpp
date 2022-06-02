@@ -41,6 +41,6 @@ void ordenaPorNum(carta sequencia_cartas[], int ini, int fim);
 void escreveSaida(jogador jogadores[]); 
 std::string jogadaParaString(int classificacaoJogada); 
 void trataEmpateJogada(jogador jogadores[], int j);
-carta achaMaiorCarta(carta sequencia_cartas[])
+void achaMaiorCarta(carta sequencia_cartas[])
 
 #endif 
