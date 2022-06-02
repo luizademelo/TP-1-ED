@@ -3,9 +3,12 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <cstdio>
 
 int n;  // numero de rodadas
 int di; // dinheiro inicial dos participantes
+int pote;
+int nv; // numero de vencedores
 
 void leEntrada()
 {
@@ -16,20 +19,21 @@ void leEntrada()
     istr >> n >> di;
     for (int i = 0; i < n; i++)
     {
-        int pote = 0;
+        pote = nv = 0;
         jogador jogadores[1000];
         getline(file, str);
         std::istringstream istr1(str);
         int j; // numero de jogadores
         int p; // valor do pingo
         istr1 >> j >> p;
-        std::cout << j << " " << p << std::endl;
+        // std::cout << j << " " << p << std::endl;
         for (int k = 0; k < j; k++)
         {
             jogador kEsimo;
             getline(file, str);
             std::istringstream istr2(str);
             istr2 >> kEsimo.nome >> kEsimo.valor_aposta;
+            pote += kEsimo.valor_aposta;
             for (int l = 0; l < 5; l++)
             {
                 std::string carta;
@@ -56,6 +60,10 @@ void leEntrada()
             jogadores[k] = kEsimo;
         }
         processaRodada(jogadores, j);
+        for (int i = 0; i < j; i++)
+        {
+            std::cout << jogadores[i].nome << " " << jogadores[i].classificacaoJogada << std::endl;
+        }
     }
 
     file.close();
@@ -66,116 +74,326 @@ void processaRodada(jogador jogadores[], int j)
     for (int i = 0; i < j; i++)
         ordenaMao(jogadores[i].sequencia_cartas);
     for (int i = 0; i < j; i++)
+        jogadores[i].classificacaoJogada = processaSequenciaCartas(jogadores[i].sequencia_cartas);
+    ordenaJogadorPorClassificacao(jogadores, j);
+}
+
+void escreveSaida(jogador jogadores[])
+{
+    FILE *saida = fopen("saida.txt", "w");
+    if (jogadores[0].classificacaoJogada != jogadores[1].classificacaoJogada)
     {
-        std::cout << "Jogador " << i << ":\n";
-        for (int k = 0; k < 5; k++)
+        fprintf(saida, "1 %d ", pote);
+        std::string s = jogadaParaString(jogadores[0].classificacaoJogada);
+        fprintf(saida, "%s\n", s);
+    }
+
+    fclose(saida);
+}
+
+std::string jogadaParaString(int classificacaoJogada)
+{
+    switch (classificacaoJogada)
+    {
+    case RSF:
+        return "RSF";
+    case SF:
+        return "SF";
+    case FK:
+        return "FK";
+    case FH:
+        return "FH";
+    case F:
+        return "F";
+    case S:
+        return "S";
+    case TK:
+        return "TK";
+    case TP:
+        return "TP";
+    case OP:
+        return "OP";
+    case HC:
+        return "HC";
+    }
+}
+
+void trataEmpateJogada(jogador jogadores[], int j)
+{
+    int rsf = 0;
+    int sf = 0;
+    int fk = 0;
+    int fh = 0;
+    int f = 0;
+    int s = 0;
+    int tk = 0;
+    int tp = 0;
+    int op = 0;
+    int hc = 0;
+    for (int i = 0; i < j; i++)
+    {
+        switch (jogadores[i].classificacaoJogada)
         {
-            std::cout << jogadores[i].sequencia_cartas[k].naipe << " " << jogadores[i].sequencia_cartas[k].numero << std::endl;
+        case RSF:
+            rsf++;
+        case SF:
+            sf++;
+        case FK:
+            fk++;
+        case FH:
+            fh++;
+        case F:
+            f++;
+        case S:
+            s++;
+        case TK:
+            tk++;
+        case TP:
+            tp++;
+        case OP:
+            op++;
+        case HC:
+            hc++;
+        }
+    }
+    if(rsf > 1) nv++; 
+    if(sf > 1)
+    {
+        for(int i = 0; i < sf; i++)
+        {
+        
+
         }
     }
 }
 
-// dado que as cartas já estão ordenadas, retorna uma string que corresponde àquela jogada: RSF, SF, FK, FH, F, S, TK, TP, OP, HC 
-std::string processaSequenciaCartas(carta sequencia_cartas[])
+carta achaMaiorCarta(carta sequencia_cartas[])
 {
-    bool rsf = true; 
-    bool sf = true; 
-    bool fk = true; 
-    bool fh = true; 
-    bool f = true;  
-    bool s = true; 
-    bool tk = true; 
-    bool tp = true; 
-    bool op = true; 
-    bool hc = true; 
-
-    // RSF 
+    carta maior = sequencia_cartas[0]; 
     for(int i = 1; i < 5; i++)
     {
-        if(sequencia_cartas[i].naipe != sequencia_cartas[i-1].naipe)
+        // a maior carta no poker é a de menor valor
+        // ex: o ás é a maior carta
+        if(sequencia_cartas[i].numero < maior.numero) 
+            maior = sequencia_cartas[i];
+    }
+    return maior; 
+}
+
+void ordenaJogadorPorClassificacao(jogador jogadores[], int j)
+{
+    /*
+    o jogador com a maior mão será o primeiro
+    */
+    for (int i = 1; i < j; i++)
+    {
+        jogador aux = jogadores[i];
+        int j = i - 1;
+        while (j >= 0 && jogadores[j].classificacaoJogada > aux.classificacaoJogada)
         {
-            rsf = false; 
-            break; 
-        } 
-        if(sequencia_cartas[0].numero != 1){
-            rsf = false; 
-            break; 
+            jogadores[j + 1] = jogadores[j];
+            j--;
         }
-        if(i > 1)
+        jogadores[j + 1] = aux;
+    }
+}
+
+int processaSequenciaCartas(carta sequencia_cartas[])
+{
+    bool rsf = true;
+    bool sf = true;
+    bool fk = true;
+    bool fh = true;
+    bool f = true;
+    bool s = true;
+    bool tk = true;
+    bool tp = true;
+    bool op = true;
+    bool hc = true;
+
+    // RSF
+    for (int i = 1; i < 5; i++)
+    {
+        if (sequencia_cartas[i].naipe != sequencia_cartas[i - 1].naipe)
         {
-            if((sequencia_cartas[i-1].numero + 1) != sequencia_cartas[i].numero)
+            rsf = false;
+            break;
+        }
+        if (sequencia_cartas[0].numero != 1)
+        {
+            rsf = false;
+            break;
+        }
+        if (i > 1)
+        {
+            if ((sequencia_cartas[i - 1].numero + 1) != sequencia_cartas[i].numero)
             {
-                rsf = false; 
-                break; 
+                rsf = false;
+                break;
             }
         }
     }
-    if(rsf) return "RSF";
+    if (rsf)
+        return RSF;
 
-    // SF 
-    for(int i = 1; i < 5; i++)
+    // SF
+    for (int i = 1; i < 5; i++)
     {
-        if(sequencia_cartas[i].naipe != sequencia_cartas[i-1].naipe)
+        if (sequencia_cartas[i].naipe != sequencia_cartas[i - 1].naipe)
         {
-            sf = false; 
-            break; 
-        } 
-    }
-    // caso 1 2 11 12 13   
-    if(sequencia_cartas[0].numero == 1 && sequencia_cartas[1].numero == 2 && sequencia_cartas[2].numero == 11 && sequencia_cartas[3].numero == 12 && sequencia_cartas[4].numero == 13)
-    {
-        if(sf) return "SF"; 
-    } 
-    // caso 1 2 3 12 13  
-    if(sequencia_cartas[0].numero == 1 && sequencia_cartas[1].numero == 2 && sequencia_cartas[2].numero == 3 && sequencia_cartas[3].numero == 12 && sequencia_cartas[4].numero == 13)
-    {
-        if(sf) return "SF";
-    }
-
-    // caso 1 2 3 4 13  
-    if(sequencia_cartas[0].numero == 1 && sequencia_cartas[1].numero == 2 && sequencia_cartas[2].numero == 3 && sequencia_cartas[3].numero == 4 && sequencia_cartas[4].numero == 13)
-    {
-        if(sf) return "SF";
-    }
-
-    // caso geral  
-    for(int i = 1; i < 5; i++)
-    {
-        if((sequencia_cartas[i-1].numero+1) != sequencia_cartas[i].numero)
-        {
-            sf = false; 
-            break; 
-        } 
-    }
-    if(sf) return "SF"; 
-
-    // FK 
-    // caso dos 4 primeiros 
-    for(int i = 1; i < 5; i++)
-    {
-        int aux = sequencia_cartas[0].numero; 
-        if(aux != sequencia_cartas[i].numero)
-        {
-            fk = false; 
-            break; 
+            sf = false;
+            break;
         }
     }
-    if(fk) return "FK"; 
-    fk = true; 
-    // caso dos 4 ultimos 
-    for(int i = 0; i < 4; i++)
+    // caso 1 2 11 12 13
+    if (sequencia_cartas[0].numero == 1 && sequencia_cartas[1].numero == 2 && sequencia_cartas[2].numero == 11 && sequencia_cartas[3].numero == 12 && sequencia_cartas[4].numero == 13)
     {
-        int aux = sequencia_cartas[4].numero; 
-        if(aux != sequencia_cartas[i].numero)
+        if (sf)
+            return SF;
+    }
+    // caso 1 2 3 12 13
+    if (sequencia_cartas[0].numero == 1 && sequencia_cartas[1].numero == 2 && sequencia_cartas[2].numero == 3 && sequencia_cartas[3].numero == 12 && sequencia_cartas[4].numero == 13)
+    {
+        if (sf)
+            return SF;
+    }
+
+    // caso 1 2 3 4 13
+    if (sequencia_cartas[0].numero == 1 && sequencia_cartas[1].numero == 2 && sequencia_cartas[2].numero == 3 && sequencia_cartas[3].numero == 4 && sequencia_cartas[4].numero == 13)
+    {
+        if (sf)
+            return SF;
+    }
+
+    // caso geral
+    for (int i = 1; i < 5; i++)
+    {
+        if ((sequencia_cartas[i - 1].numero + 1) != sequencia_cartas[i].numero)
         {
-            fk = false; 
-            break; 
+            sf = false;
+            break;
         }
     }
-    if(fk) return "FK"; 
+    if (sf)
+        return SF;
 
-    // FH 
-    
+    // FK
+    // caso dos 4 primeiros
+    for (int i = 1; i < 5; i++)
+    {
+        int aux = sequencia_cartas[0].numero;
+        if (aux != sequencia_cartas[i].numero)
+        {
+            fk = false;
+            break;
+        }
+    }
+    if (fk)
+        return FK;
+    fk = true;
+    // caso dos 4 ultimos
+    for (int i = 0; i < 4; i++)
+    {
+        int aux = sequencia_cartas[4].numero;
+        if (aux != sequencia_cartas[i].numero)
+        {
+            fk = false;
+            break;
+        }
+    }
+    if (fk)
+        return FK;
+
+    // FH
+    for (int i = 1; i < 3; i++)
+    {
+        if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
+            fh = false;
+    }
+    if (fh)
+    {
+        if (sequencia_cartas[3].numero == sequencia_cartas[4].numero)
+            return FH;
+    }
+    else
+    {
+        for (int i = 3; i < 5; i++)
+        {
+            if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
+                fh = false;
+        }
+        if (fh)
+        {
+            if (sequencia_cartas[0].numero == sequencia_cartas[1].numero)
+                return FH;
+        }
+    }
+
+    // FLUSH
+    for (int i = 1; i < 5; i++)
+    {
+        if (sequencia_cartas[i - 1].naipe != sequencia_cartas[i].naipe)
+            f = false;
+    }
+    if (f)
+        return F;
+
+    // STRAIGHT
+    for (int i = 1; i < 5; i++)
+    {
+        if ((sequencia_cartas[i - 1].numero + 1) != sequencia_cartas[i].numero)
+            s = false;
+    }
+    if (s)
+        return S;
+
+    // THREE OF A KIND
+    int seq_3 = 0;
+    for (int i = 1; i < 5; i++)
+    {
+        if (sequencia_cartas[i - 1].numero == sequencia_cartas[i].numero)
+            seq_3++;
+        else
+            seq_3 = 0;
+    }
+    if (seq_3 == 3)
+        return TK;
+
+    // TWO PAIRS
+    int seq2 = 0;
+    int num_seq2 = 0;
+    for (int i = 1; i < 5; i++)
+    {
+        if (seq2 == 2)
+        {
+            num_seq2++;
+            seq2 = 0;
+        }
+        if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
+        {
+            seq2 = 0;
+        }
+        else
+            seq2++;
+    }
+
+    // ONE PAIR
+    seq2 = 0;
+    for (int i = 1; i < 5; i++)
+    {
+        if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
+        {
+            seq2 = 0;
+        }
+        else
+            seq2++;
+    }
+    if (seq2 == 1)
+        return OP;
+
+    // HIGH CARD
+    // não passou nos testes anteriores, então só pode ser high card
+    return HC;
 }
 
 void ordenaMao(carta sequencia_cartas[])

@@ -1,0 +1,3 @@
+- criar uma função para tratar empates
+- tratar nomes compostos
+- tratar para escrever mais de um vencedor na saida 
