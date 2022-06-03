@@ -40,7 +40,7 @@ void ordenaPorNaipe(carta sequencia_cartas[]);
 void ordenaPorNum(carta sequencia_cartas[], int ini, int fim); 
 void escreveSaida(jogador jogadores[]); 
 std::string jogadaParaString(int classificacaoJogada); 
-void trataEmpateJogada(jogador jogadores[], int j);
-void achaMaiorCarta(carta sequencia_cartas[])
+void trataEmpateJogada(jogador jogadores[]);
+void achaMaiorCarta(jogador jogadores[]); 
 
 #endif 
