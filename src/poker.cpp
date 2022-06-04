@@ -4,6 +4,8 @@
 #include <fstream>
 #include <iostream>
 #include <cstdio>
+#include "..\include\memlog.h"
+#include "..\include\msgassert.h"
 
 int n;  // numero de rodadas
 int di; // dinheiro inicial dos participantes
@@ -15,29 +17,23 @@ jogador vencedores[12];
 
 void leEntrada()
 {
-    // std::ifstream file("entrada.txt");
-    // std::string str;
-    // getline(file, str);
-    // std::istringstream istr(str);
-    // istr >> n >> di;
     FILE *arq = fopen("entrada.txt", "r");
     fscanf(arq, "%d %d", &n, &di); 
-    std::cout << "n: " << n << " di: " << di << std::endl;
     for (int i = 0; i < n; i++)
     {
         pote = 0;
         nv = 1; 
         jogador jogadores[12];
         fscanf(arq, "%d %d\n", &j, &p); 
-        std::cout << j << " " << p << std::endl;
+        erroAssert(p >= 50, "Pingo é menor que 50!"); 
         for (int k = 0; k < j; k++)
         {
             jogador kEsimo;
             char nome[100]; 
             fscanf(arq, "%[^0-9] %d ", nome, &kEsimo.valor_aposta);
             kEsimo.nome = nome; 
-            pote += kEsimo.valor_aposta;
-            kEsimo.saldo = di - kEsimo.valor_aposta;
+            pote += kEsimo.valor_aposta + p;
+            kEsimo.saldo = di - kEsimo.valor_aposta - p;
             for (int l = 0; l < 5; l++)
             {
                 char c[5];
@@ -211,6 +207,114 @@ void trataEmpateJogada(jogador jogadores[])
         for(int i = 0; i < j; i++)
         {
             if(jogadores[i].classificacaoJogada == SF && jogadores[i].maior_carta.numero == maior)
+            {
+                vencedores[nv-1] = jogadores[i]; 
+                nv++; 
+            }    
+        }
+        nv--; 
+    }
+    if(fk > 1)
+    {
+        int i = 0;
+        int maior = jogadores[0].maior_carta.numero;
+        // vendo a maior carta de quem tem FK
+        while(jogadores[++i].classificacaoJogada == FK)
+        {
+            if(jogadores[i].maior_carta.numero < maior)
+                maior = jogadores[i].maior_carta.numero; 
+        }
+        // vendo quantos jogadores estão empatados
+        for(i = 0; i < j; i++)
+        {
+            if(jogadores[i].classificacaoJogada == FK && jogadores[i].maior_carta.numero == maior)
+            {
+                vencedores[nv-1] = jogadores[i]; 
+                nv++; 
+            }    
+        }
+        nv--; 
+    }
+
+    if(fh > 1)
+    {
+        int i = 0;
+        int maior = jogadores[0].maior_carta.numero;
+        // vendo a maior carta de quem tem fh 
+        while(jogadores[++i].classificacaoJogada == FH)
+        {
+            if(jogadores[i].maior_carta.numero < maior)
+                maior = jogadores[i].maior_carta.numero; 
+        }
+        // vendo quantos jogadores estão empatados
+        for(i = 0; i < j; i++)
+        {
+            if(jogadores[i].classificacaoJogada == FH && jogadores[i].maior_carta.numero == maior)
+            {
+                vencedores[nv-1] = jogadores[i]; 
+                nv++; 
+            }    
+        }
+        nv--; 
+    }
+
+    if(f > 1)
+    {
+        int i = 0;
+        int maior = jogadores[0].maior_carta.numero;
+        // vendo a maior carta de quem tem FK
+        while(jogadores[++i].classificacaoJogada == F)
+        {
+            if(jogadores[i].maior_carta.numero < maior)
+                maior = jogadores[i].maior_carta.numero; 
+        }
+        // vendo quantos jogadores estão empatados
+        for(i = 0; i < j; i++)
+        {
+            if(jogadores[i].classificacaoJogada == F && jogadores[i].maior_carta.numero == maior)
+            {
+                vencedores[nv-1] = jogadores[i]; 
+                nv++; 
+            }    
+        }
+        nv--; 
+    }
+    if(s > 1)
+    {
+        int i = 0;
+        int maior = jogadores[0].maior_carta.numero;
+        // vendo a maior carta de quem tem FK
+        while(jogadores[++i].classificacaoJogada == S)
+        {
+            if(jogadores[i].maior_carta.numero < maior)
+                maior = jogadores[i].maior_carta.numero; 
+        }
+        // vendo quantos jogadores estão empatados
+        for(i = 0; i < j; i++)
+        {
+            if(jogadores[i].classificacaoJogada == S && jogadores[i].maior_carta.numero == maior)
+            {
+                vencedores[nv-1] = jogadores[i]; 
+                nv++; 
+            }    
+        }
+        nv--; 
+    }
+
+    if(hc > 1)
+    {
+        int i = 0;
+        int maior = jogadores[0].maior_carta.numero;
+        // vendo a maior carta de quem tem FK
+        while(jogadores[++i].classificacaoJogada == HC)
+        {
+            if(jogadores[i].maior_carta.numero < maior)
+                maior = jogadores[i].maior_carta.numero; 
+        }
+        // vendo quantos jogadores estão empatados
+        for(i = 0; i < j; i++)
+        {
+            if(jogadores[i].classificacaoJogada == HC && jogadores[i].maior_carta.numero == maior)
             {
                 vencedores[nv-1] = jogadores[i]; 
                 nv++; 

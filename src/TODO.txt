@@ -1,3 +1,4 @@
 - tratar empates
 - criar erro asserts 
 - implementar array de vencedores
+- mudar tratamento empate fk fh, tk,tp, op
