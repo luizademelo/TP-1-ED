@@ -4,41 +4,56 @@
 #include <fstream>
 #include <iostream>
 #include <cstdio>
-#include "..\include\memlog.h"
-#include "..\include\msgassert.h"
 
 int n;  // numero de rodadas
 int di; // dinheiro inicial dos participantes
 int pote;
 int nv; // numero de vencedores
 int j; // numero de jogadores
+int j_total; 
 int p; // valor do pingo
-jogador vencedores[12]; 
+bool rodada_valida; 
 
+jogador vencedores[12]; 
+jogador jogadores_total[12]; 
 void leEntrada()
 {
     FILE *arq = fopen("entrada.txt", "r");
-    fscanf(arq, "%d %d", &n, &di); 
+    std::ofstream file("saida.txt", std::ios::app);
+    fscanf(arq, "%d %d", &n, &di);
     for (int i = 0; i < n; i++)
     {
         pote = 0;
-        nv = 1; 
+        nv = 1;
+        rodada_valida = true; 
         jogador jogadores[12];
-        fscanf(arq, "%d %d\n", &j, &p); 
-        erroAssert(p >= 50, "Pingo é menor que 50!"); 
+        fscanf(arq, "%d %d\n", &j, &p);
+        if(i == 0) j_total = j; 
+        if(p < 50)
+            rodada_valida = false;
+        if(rodada_valida) pote += (p * j_total); 
         for (int k = 0; k < j; k++)
         {
             jogador kEsimo;
-            char nome[100]; 
+            char nome[100];
             fscanf(arq, "%[^0-9] %d ", nome, &kEsimo.valor_aposta);
-            kEsimo.nome = nome; 
-            pote += kEsimo.valor_aposta + p;
-            kEsimo.saldo = di - kEsimo.valor_aposta - p;
+            kEsimo.nome = nome;
+            if(rodada_valida)
+            {
+                pote += kEsimo.valor_aposta;
+                if(i == 0) 
+                    kEsimo.saldo = di - kEsimo.valor_aposta ;
+                else
+                {
+                    int indice = achaIndiceJogador(kEsimo.nome); 
+                    jogadores_total[indice].saldo -= kEsimo.valor_aposta;
+                }
+            }
             for (int l = 0; l < 5; l++)
             {
                 char c[5];
-                fscanf(arq, "%s ", c); 
-                std::string carta = c; 
+                fscanf(arq, "%s ", c);
+                std::string carta = c;
                 if (carta.size() == 2)
                 {
                     kEsimo.sequencia_cartas[l].numero = carta[0] - '0';
@@ -57,13 +72,23 @@ void leEntrada()
                     kEsimo.sequencia_cartas[l].naipe = carta[2];
                 }
             }
-
+            if(i == 0)
+                jogadores_total[k] = kEsimo; 
             jogadores[k] = kEsimo;
+        }
+        if(rodada_valida)
+        {
+            for(int x = 0; x < j_total; x++)
+                jogadores_total[x].saldo -= p; 
         }
         processaRodada(jogadores, j);
     }
-
-    fclose(arq); 
+    ordenaJogadorPorMontante(jogadores_total); 
+    file << "####\n";
+    for(int i = 0; i < j_total; i++)
+        file << jogadores_total[i].nome << " " << jogadores_total[i].saldo << '\n'; 
+    file.close(); 
+    fclose(arq);
 }
 
 void processaRodada(jogador jogadores[], int j)
@@ -71,41 +96,59 @@ void processaRodada(jogador jogadores[], int j)
     for (int i = 0; i < j; i++)
         ordenaMao(jogadores[i].sequencia_cartas);
     for (int i = 0; i < j; i++)
+    {
         jogadores[i].classificacaoJogada = processaSequenciaCartas(jogadores[i].sequencia_cartas);
+    }
+
     ordenaJogadorPorClassificacao(jogadores, j);
-    vencedores[0] = jogadores[0]; 
-    achaMaiorCarta(jogadores); 
-    trataEmpateJogada(jogadores); 
-    escreveSaida(jogadores); 
+    vencedores[0] = jogadores[0];
+    achaMaiorCarta(jogadores);
+    trataEmpateJogada(jogadores);
+    escreveSaida(jogadores);
 }
 
 void escreveSaida(jogador jogadores[])
 {
-    std::ofstream file("saida.txt");     
-    file << nv << " " << pote/nv << " " << jogadaParaString(jogadores[0].classificacaoJogada) << "\n"; 
-    for(int i = 0; i < nv; i++)
+    std::ofstream file("saida.txt", std::ios::app);
+    if(rodada_valida)
     {
-        file << vencedores[i].nome << '\n'; 
-        vencedores[i].saldo += pote/nv; 
-    }
-    file << "####\n"; 
-    for(int i = 0; i < nv; i++)
-    {
-        file << vencedores[i].nome << " " << vencedores[i].saldo << '\n'; 
-    }
-    for(int i = 0; i < j; i++)
-    {   
-        bool e_vencedor = false; 
-        // se ele for um dos vencedores ja foi impresso anteriormente
-        for(int k = 0; k < nv; k++) 
+        file << nv << " " << pote / nv << " " << jogadaParaString(jogadores[0].classificacaoJogada) << "\n";
+        for (int i = 0; i < nv; i++)
         {
-            if(jogadores[i].nome == vencedores[k].nome)
-                e_vencedor = true;  
+            file << vencedores[i].nome << '\n';
+            vencedores[i].saldo += pote / nv;
+            int indice = achaIndiceJogador(vencedores[i].nome); 
+            jogadores_total[indice].saldo += pote/nv; 
         }
-        if(!e_vencedor)
-            file << jogadores[i].nome << " " << jogadores[i].saldo << '\n';  
+    }else  
+        file << "0 0 I\n"; 
+    file.close();
+}
+
+void ordenaJogadorPorMontante(jogador jogadores[])
+{
+    for (int i = 0; i < 5; i++)
+    {
+        int i_menor = i;
+        for (int j = i + 1; j < 5; j++)
+        {
+            if (jogadores[j].saldo < jogadores[i_menor].saldo)
+                i_menor = j;
+        }
+        jogador aux = jogadores[i];
+        jogadores[i] = jogadores[i_menor];
+        jogadores[i_menor] = aux;
     }
-    file.close(); 
+}
+
+int achaIndiceJogador(std::string nome)
+{
+    for(int i = 0; i < j_total; i++)
+    {
+        if(nome == jogadores_total[i].nome)
+            return i; 
+    }
+    return -1; 
 }
 
 std::string jogadaParaString(int classificacaoJogada)
@@ -137,6 +180,8 @@ std::string jogadaParaString(int classificacaoJogada)
 
 void trataEmpateJogada(jogador jogadores[])
 {
+    if(jogadores[0].classificacaoJogada != jogadores[1].classificacaoJogada) 
+        return; 
     int rsf = 0;
     int sf = 0;
     int fk = 0;
@@ -157,7 +202,8 @@ void trataEmpateJogada(jogador jogadores[])
             break;
         case SF:
             sf++;
-            if(sf == 1) p_sf = i; 
+            if (sf == 1)
+                p_sf = i;
             break;
         case FK:
             fk++;
@@ -187,146 +233,294 @@ void trataEmpateJogada(jogador jogadores[])
     }
     if (rsf > 1)
     {
-        for(int i = 0; i < rsf; i++)
+        for (int i = 0; i < rsf; i++)
         {
-            vencedores[i] = jogadores[i]; 
-            nv++; 
+            vencedores[i] = jogadores[i];
+            nv++;
         }
-        nv--; 
+        nv--;
+
     }
-    if (sf > 1)
+    else if (sf > 1)
     {
-        int maior = jogadores[p_sf].maior_carta.numero; 
+        int maior = jogadores[p_sf].maior_carta.numero;
         // vendo a maior carta de quem tem SF
-        while(jogadores[++p_sf].classificacaoJogada == SF)
+        while (jogadores[++p_sf].classificacaoJogada == SF)
         {
-            if(jogadores[p_sf].maior_carta.numero < maior)
-                maior = jogadores[p_sf].maior_carta.numero; 
+            if (jogadores[p_sf].maior_carta.numero < maior)
+                maior = jogadores[p_sf].maior_carta.numero;
         }
         // vendo quantos jogadores estão empatados
-        for(int i = 0; i < j; i++)
+        for (int i = 0; i < j; i++)
         {
-            if(jogadores[i].classificacaoJogada == SF && jogadores[i].maior_carta.numero == maior)
+            if (jogadores[i].classificacaoJogada == SF && jogadores[i].maior_carta.numero == maior)
             {
-                vencedores[nv-1] = jogadores[i]; 
-                nv++; 
-            }    
+                vencedores[nv - 1] = jogadores[i];
+                nv++;
+            }
         }
-        nv--; 
-    }
-    if(fk > 1)
-    {
-        int i = 0;
-        int maior = jogadores[0].maior_carta.numero;
-        // vendo a maior carta de quem tem FK
-        while(jogadores[++i].classificacaoJogada == FK)
-        {
-            if(jogadores[i].maior_carta.numero < maior)
-                maior = jogadores[i].maior_carta.numero; 
-        }
-        // vendo quantos jogadores estão empatados
-        for(i = 0; i < j; i++)
-        {
-            if(jogadores[i].classificacaoJogada == FK && jogadores[i].maior_carta.numero == maior)
-            {
-                vencedores[nv-1] = jogadores[i]; 
-                nv++; 
-            }    
-        }
-        nv--; 
+        nv--;
     }
 
-    if(fh > 1)
+    else if (fk > 1)
     {
-        int i = 0;
-        int maior = jogadores[0].maior_carta.numero;
-        // vendo a maior carta de quem tem fh 
-        while(jogadores[++i].classificacaoJogada == FH)
+        int maior, i = 0;
+        maior = achaCartaFK(jogadores[i]).numero;
+        // vendo a maior  carta de quem tem FK
+        while (jogadores[++i].classificacaoJogada == FK)
         {
-            if(jogadores[i].maior_carta.numero < maior)
-                maior = jogadores[i].maior_carta.numero; 
+            if (achaCartaFK(jogadores[i]).numero < maior)
+                maior = achaCartaFK(jogadores[i]).numero;
         }
         // vendo quantos jogadores estão empatados
-        for(i = 0; i < j; i++)
+        for (int i = 0; i < j; i++)
         {
-            if(jogadores[i].classificacaoJogada == FH && jogadores[i].maior_carta.numero == maior)
+            if (jogadores[i].classificacaoJogada == FK && achaCartaFK(jogadores[i]).numero == maior)
             {
-                vencedores[nv-1] = jogadores[i]; 
-                nv++; 
-            }    
+                vencedores[nv - 1] = jogadores[i];
+                nv++;
+            }
         }
-        nv--; 
     }
 
-    if(f > 1)
+    else if (fh > 1)
     {
         int i = 0;
-        int maior = jogadores[0].maior_carta.numero;
-        // vendo a maior carta de quem tem FK
-        while(jogadores[++i].classificacaoJogada == F)
+        int maior = achaTriplaFH(jogadores[i]).numero;
+        // vendo a maior carta de quem tem fh
+        while (jogadores[++i].classificacaoJogada == FH)
         {
-            if(jogadores[i].maior_carta.numero < maior)
-                maior = jogadores[i].maior_carta.numero; 
+            if (achaTriplaFH(jogadores[i]).numero < maior)
+                maior = achaTriplaFH(jogadores[i]).numero;
         }
-        // vendo quantos jogadores estão empatados
-        for(i = 0; i < j; i++)
+        for (int i = 0; i < j; i++)
         {
-            if(jogadores[i].classificacaoJogada == F && jogadores[i].maior_carta.numero == maior)
+            if (jogadores[i].classificacaoJogada == FH && achaTriplaFH(jogadores[i]).numero == maior)
             {
-                vencedores[nv-1] = jogadores[i]; 
-                nv++; 
-            }    
+                vencedores[0] = jogadores[i];
+                break;
+            }
         }
-        nv--; 
-    }
-    if(s > 1)
-    {
-        int i = 0;
-        int maior = jogadores[0].maior_carta.numero;
-        // vendo a maior carta de quem tem FK
-        while(jogadores[++i].classificacaoJogada == S)
-        {
-            if(jogadores[i].maior_carta.numero < maior)
-                maior = jogadores[i].maior_carta.numero; 
-        }
-        // vendo quantos jogadores estão empatados
-        for(i = 0; i < j; i++)
-        {
-            if(jogadores[i].classificacaoJogada == S && jogadores[i].maior_carta.numero == maior)
-            {
-                vencedores[nv-1] = jogadores[i]; 
-                nv++; 
-            }    
-        }
-        nv--; 
     }
 
-    if(hc > 1)
+    else if (f > 1)
     {
         int i = 0;
         int maior = jogadores[0].maior_carta.numero;
         // vendo a maior carta de quem tem FK
-        while(jogadores[++i].classificacaoJogada == HC)
+        while (jogadores[++i].classificacaoJogada == F)
         {
-            if(jogadores[i].maior_carta.numero < maior)
-                maior = jogadores[i].maior_carta.numero; 
+            if (jogadores[i].maior_carta.numero < maior)
+                maior = jogadores[i].maior_carta.numero;
         }
         // vendo quantos jogadores estão empatados
-        for(i = 0; i < j; i++)
+        for (i = 0; i < j; i++)
         {
-            if(jogadores[i].classificacaoJogada == HC && jogadores[i].maior_carta.numero == maior)
+            if (jogadores[i].classificacaoJogada == F && jogadores[i].maior_carta.numero == maior)
             {
-                vencedores[nv-1] = jogadores[i]; 
-                nv++; 
-            }    
+                vencedores[nv - 1] = jogadores[i];
+                nv++;
+            }
         }
-        nv--; 
+        nv--;
     }
+    else if (s > 1)
+    {
+        int i = 0;
+        int maior = jogadores[0].maior_carta.numero;
+        // vendo a maior carta de quem tem FK
+        while (jogadores[++i].classificacaoJogada == S)
+        {
+            if (jogadores[i].maior_carta.numero < maior)
+                maior = jogadores[i].maior_carta.numero;
+        }
+        // vendo quantos jogadores estão empatados
+        for (i = 0; i < j; i++)
+        {
+            if (jogadores[i].classificacaoJogada == S && jogadores[i].maior_carta.numero == maior)
+            {
+                vencedores[nv - 1] = jogadores[i];
+                nv++;
+            }
+        }
+        nv--;
+    }
+
+    else if (tk > 1)
+    {
+        int i = 0;
+        int maior = jogadores[0].sequencia_cartas[2].numero;
+        // vendo a maior carta de quem tem FK
+        while (jogadores[++i].classificacaoJogada == TK)
+        {
+            if (jogadores[i].sequencia_cartas[2].numero < maior)
+                maior = jogadores[i].sequencia_cartas[2].numero;
+        }
+        // vendo quantos jogadores estão empatados
+        for (i = 0; i < j; i++)
+        {
+            if (jogadores[i].classificacaoJogada == TK && jogadores[i].sequencia_cartas[2].numero == maior)
+            {
+                vencedores[nv - 1] = jogadores[i];
+                nv++;
+            }
+        }
+        nv--;
+    }
+
+    else if (tp > 1)
+    {
+        int i = 0;
+        int maior = achaMaiorParTP(jogadores[0]).numero;
+        // vendo a maior carta de quem tem FK
+        while (jogadores[++i].classificacaoJogada == TP)
+        {
+            if (achaMaiorParTP(jogadores[i]).numero < maior)
+                maior = achaMaiorParTP(jogadores[i]).numero;
+        }
+        // vendo quantos jogadores estão empatados
+        for (i = 0; i < j; i++)
+        {
+            if (jogadores[i].classificacaoJogada == TP && achaMaiorParTP(jogadores[i]).numero == maior)
+            {
+                vencedores[nv - 1] = jogadores[i];
+                nv++;
+            }
+        }
+        nv--;
+    }
+
+    else if (op > 1)
+    {
+        int i = 0;
+        int maior = achaParOP(jogadores[0]).numero;
+        // vendo a maior carta de quem tem FK
+        while (jogadores[++i].classificacaoJogada == OP)
+        {
+            if (achaParOP(jogadores[i]).numero < maior)
+                maior = achaParOP(jogadores[i]).numero;
+        }
+        // vendo quantos jogadores estão empatados
+        for (i = 0; i < j; i++)
+        {
+            if (jogadores[i].classificacaoJogada == OP && achaParOP(jogadores[i]).numero == maior)
+            {
+                vencedores[nv - 1] = jogadores[i];
+                nv++;
+            }
+        }
+        nv--;
+    }
+
+    else if (hc > 1)
+    {
+        int i = 0;
+        int maior = jogadores[0].maior_carta.numero;
+        // vendo a maior carta de quem tem FK
+        while (jogadores[++i].classificacaoJogada == HC)
+        {
+            if (jogadores[i].maior_carta.numero < maior)
+                maior = jogadores[i].maior_carta.numero;
+        }
+        // vendo quantos jogadores estão empatados
+        for (i = 0; i < j; i++)
+        {
+            if (jogadores[i].classificacaoJogada == HC && jogadores[i].maior_carta.numero == maior)
+            {
+                vencedores[nv - 1] = jogadores[i];
+                nv++;
+            }
+        }
+        nv--;
+    }
+}
+
+carta achaParOP(jogador jog)
+{
+    // caso 1 1 X X X
+    if (jog.sequencia_cartas[0].numero == jog.sequencia_cartas[1].numero)
+        return jog.sequencia_cartas[0];
+
+    // caso X 1 1 X X
+    if (jog.sequencia_cartas[1].numero == jog.sequencia_cartas[2].numero)
+        return jog.sequencia_cartas[1];
+
+    // caso X X 1 1 X
+    if (jog.sequencia_cartas[2].numero == jog.sequencia_cartas[3].numero)
+        return jog.sequencia_cartas[2];
+    // caso X X X 1 1
+    if (jog.sequencia_cartas[3].numero == jog.sequencia_cartas[4].numero)
+        return jog.sequencia_cartas[3];
+}
+
+carta achaTriplaFH(jogador jog)
+{
+    carta tripla;
+    if (jog.sequencia_cartas[1].numero == jog.sequencia_cartas[2].numero)
+        tripla = jog.sequencia_cartas[1];
+    else
+        tripla = jog.sequencia_cartas[3];
+    return tripla;
+}
+
+carta achaMaiorParTP(jogador jog)
+{
+    // caso 0 0 1 1 X
+    bool tp = true;
+    if (jog.sequencia_cartas[0].numero != jog.sequencia_cartas[1].numero)
+        tp = false;
+    if (jog.sequencia_cartas[2].numero != jog.sequencia_cartas[3].numero)
+        tp = false;
+    if (tp)
+    {
+        if (jog.sequencia_cartas[1].numero < jog.sequencia_cartas[2].numero)
+            return jog.sequencia_cartas[1];
+        else
+            return jog.sequencia_cartas[2];
+    }
+
+    tp = true;
+    // caso X 0 0 1 1
+    if (jog.sequencia_cartas[1].numero != jog.sequencia_cartas[2].numero)
+        tp = false;
+    if (jog.sequencia_cartas[3].numero != jog.sequencia_cartas[4].numero)
+        tp = false;
+    if (tp)
+    {
+        if (jog.sequencia_cartas[2].numero < jog.sequencia_cartas[3].numero)
+            return jog.sequencia_cartas[2];
+        else
+            return jog.sequencia_cartas[3];
+    }
+
+    tp = true;
+    // caso 0 0 X 1 1
+    if (jog.sequencia_cartas[0].numero != jog.sequencia_cartas[1].numero)
+        tp = false;
+    if (jog.sequencia_cartas[3].numero != jog.sequencia_cartas[4].numero)
+        tp = false;
+    if (tp)
+    {
+        if (jog.sequencia_cartas[0].numero < jog.sequencia_cartas[3].numero)
+            return jog.sequencia_cartas[0];
+        else
+            return jog.sequencia_cartas[3];
+    }
+}
+
+carta achaCartaFK(jogador jog)
+{
+    carta maior;
+    if (jog.sequencia_cartas[0].numero == jog.sequencia_cartas[1].numero)
+        maior = jog.maior_carta;
+    else
+        maior = jog.sequencia_cartas[2];
+    return maior;
 }
 
 void achaMaiorCarta(jogador jogadores[])
 {
-    for(int i = 0; i < j; i++)
+    for (int i = 0; i < j; i++)
     {
         carta maior = jogadores[i].sequencia_cartas[0];
         for (int k = 1; k < 5; k++)
@@ -336,9 +530,8 @@ void achaMaiorCarta(jogador jogadores[])
             if (jogadores[i].sequencia_cartas[k].numero < maior.numero)
                 maior = jogadores[i].sequencia_cartas[k];
         }
-        jogadores[i].maior_carta = maior; 
+        jogadores[i].maior_carta = maior;
     }
-    
 }
 
 void ordenaJogadorPorClassificacao(jogador jogadores[], int j)
@@ -381,11 +574,16 @@ int processaSequenciaCartas(carta sequencia_cartas[])
             break;
         }
     }
-    if(sequencia_cartas[0].numero != 1) rsf = false; 
-    if(sequencia_cartas[1].numero != 10) rsf = false; 
-    if(sequencia_cartas[2].numero != 11) rsf = false; 
-    if(sequencia_cartas[3].numero != 12) rsf = false; 
-    if(sequencia_cartas[4].numero != 13) rsf = false; 
+    if (sequencia_cartas[0].numero != 1)
+        rsf = false;
+    if (sequencia_cartas[1].numero != 10)
+        rsf = false;
+    if (sequencia_cartas[2].numero != 11)
+        rsf = false;
+    if (sequencia_cartas[3].numero != 12)
+        rsf = false;
+    if (sequencia_cartas[4].numero != 13)
+        rsf = false;
     if (rsf)
         return RSF;
 
@@ -431,8 +629,9 @@ int processaSequenciaCartas(carta sequencia_cartas[])
         return SF;
 
     // FK
+    ordenaPorNum(sequencia_cartas, 0, 4);
     // caso dos 4 primeiros
-    for (int i = 1; i < 5; i++)
+    for (int i = 1; i < 4; i++)
     {
         int aux = sequencia_cartas[0].numero;
         if (aux != sequencia_cartas[i].numero)
@@ -445,7 +644,7 @@ int processaSequenciaCartas(carta sequencia_cartas[])
         return FK;
     fk = true;
     // caso dos 4 ultimos
-    for (int i = 0; i < 4; i++)
+    for (int i = 1; i < 4; i++)
     {
         int aux = sequencia_cartas[4].numero;
         if (aux != sequencia_cartas[i].numero)
@@ -470,6 +669,7 @@ int processaSequenciaCartas(carta sequencia_cartas[])
     }
     else
     {
+        fh = true;
         for (int i = 3; i < 5; i++)
         {
             if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
@@ -501,48 +701,76 @@ int processaSequenciaCartas(carta sequencia_cartas[])
         return S;
 
     // THREE OF A KIND
-    int seq_3 = 0;
-    for (int i = 1; i < 5; i++)
+    // caso 1 1 1 X X
+    for (int i = 1; i < 3; i++)
     {
-        if (sequencia_cartas[i - 1].numero == sequencia_cartas[i].numero)
-            seq_3++;
-        else
-            seq_3 = 0;
+        if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
+            tk = false;
     }
-    if (seq_3 == 3)
+    if (tk)
         return TK;
+    tk = true;
+    // caso X 1 1 1 X
+    for (int i = 2; i < 4; i++)
+    {
+        if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
+            tk = false;
+    }
+    if (tk)
+        return true;
+
+    // caso X X 1 1 1
+    tk = true;
+    for (int i = 3; i < 5; i++)
+    {
+        if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
+            tk = false;
+    }
+    if (tk)
+        return true;
 
     // TWO PAIRS
-    int seq2 = 0;
-    int num_seq2 = 0;
-    for (int i = 1; i < 5; i++)
-    {
-        if (seq2 == 2)
-        {
-            num_seq2++;
-            seq2 = 0;
-        }
-        if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
-        {
-            seq2 = 0;
-        }
-        else
-            seq2++;
-    }
+    // caso 0 0 1 1 X
+    if (sequencia_cartas[0].numero != sequencia_cartas[1].numero)
+        tp = false;
+    if (sequencia_cartas[2].numero != sequencia_cartas[3].numero)
+        tp = false;
+    if (tp)
+        return TP;
+    tp = true;
+
+    // caso X 0 0 1 1
+    if (sequencia_cartas[1].numero != sequencia_cartas[2].numero)
+        tp = false;
+    if (sequencia_cartas[3].numero != sequencia_cartas[4].numero)
+        tp = false;
+    if (tp)
+        return TP;
+
+    tp = true;
+    // caso 0 0 X 1 1
+    if (sequencia_cartas[0].numero != sequencia_cartas[1].numero)
+        tp = false;
+    if (sequencia_cartas[3].numero != sequencia_cartas[4].numero)
+        tp = false;
+    if (tp)
+        return TP;
 
     // ONE PAIR
-    seq2 = 0;
-    for (int i = 1; i < 5; i++)
-    {
-        if (sequencia_cartas[i - 1].numero != sequencia_cartas[i].numero)
-        {
-            seq2 = 0;
-        }
-        else
-            seq2++;
-    }
-    if (seq2 == 1)
+    // caso 1 1 X X X
+    if (sequencia_cartas[0].numero == sequencia_cartas[1].numero)
         return OP;
+
+    // caso X 1 1 X X
+    if (sequencia_cartas[1].numero == sequencia_cartas[2].numero)
+        return OP;
+
+    // caso X X 1 1 X
+    if (sequencia_cartas[2].numero == sequencia_cartas[3].numero)
+        return OP;
+    // caso X X X 1 1
+    if (sequencia_cartas[3].numero == sequencia_cartas[4].numero)
+        return OP; 
 
     // HIGH CARD
     // não passou nos testes anteriores, então só pode ser high card

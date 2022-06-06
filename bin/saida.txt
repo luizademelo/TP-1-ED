@@ -1,11 +1,11 @@
 2 500 RSF
 Giovanni 
-John 
+Thiago 
 0 0 I
 0 0 I
 ####
 Gisele  650
-Thiago  850
+John  750
 Wagner  900
-John  1250
 Giovanni  1350
+Thiago  1350

@@ -13,6 +13,7 @@
 #define HC 10 
 
 
+
 #include <string>
 
 typedef struct carta 
@@ -32,9 +33,11 @@ typedef struct jogador
 } jogador;
 
 void leEntrada(); 
+void inicializaJogadores(jogador jogadores[]);
 void processaRodada(jogador jogadores[], int j); 
 int processaSequenciaCartas(carta sequencia_cartas[]); 
 void ordenaJogadorPorClassificacao(jogador jogadores[], int j); 
+void ordenaJogadorPorMontante(jogador jogadores[]);
 void ordenaMao(carta sequencia_cartas[]); 
 void ordenaPorNaipe(carta sequencia_cartas[]); 
 void ordenaPorNum(carta sequencia_cartas[], int ini, int fim); 
@@ -42,5 +45,10 @@ void escreveSaida(jogador jogadores[]);
 std::string jogadaParaString(int classificacaoJogada); 
 void trataEmpateJogada(jogador jogadores[]);
 void achaMaiorCarta(jogador jogadores[]); 
+carta achaCartaFK(jogador jog); 
+carta achaTriplaFH(jogador jog);
+carta achaMaiorParTP(jogador jog); 
+carta achaParOP(jogador jog);
+int achaIndiceJogador(std::string nome); 
 
 #endif 
